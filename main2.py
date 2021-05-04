@@ -1,105 +1,99 @@
 
-def is_point_in_rect(point, bottomLeft, topRight):
-  return point.x > bottomLeft.x and \
-         point.x < topRight.x and \
-         point.y > bottomLeft.y and \
-         point.y < topRight.y
+def punto_rectangulo(punto, abajo_izquierda, arriba_derecha):
+  return punto.x > abajo_izquierda.x and \
+         punto.x < arriba_derecha.x and \
+         punto.y > abajo_izquierda.y and \
+         punto.y < arriba_derecha.y
 
-def is_point_in_circle(point, circle):
-  dst_x = point.x - circle.x
-  dst_y = point.y - circle.y
-  return dst_x * dst_x + dst_y * dst_y < circle.value * circle.value
-
-class Point:
+class Punto:
   def __init__(self, x, y, value = None):
     self.x = x
     self.y = y
     self.value = value
 
-# The QuadTree
 class QuadTree:
-  def __init__(self, capacity = 5, bottomLeft = Point(-200, -200, None), topRight = Point(200, 200, None)):
-    self.northWest = None
-    self.northEast = None
-    self.southWest = None
-    self.southEast = None
-    self.bottomLeft = bottomLeft
-    self.topRight = topRight
-    self.points = []
-    self.capacity = capacity
+  def __init__(self, capacidad = 5, abajo_izquierda = Punto(-200, -200, None), arriba_derecha = Punto(200, 200, None)):
+    self.noroeste = None
+    self.noreste = None
+    self.suroeste = None
+    self.sureste = None
+    self.abajo_izquierda = abajo_izquierda
+    self.arriba_derecha = arriba_derecha
+    self.puntos = []
+    self.capacidad = capacidad
 
-  def add_point(self, point):
-    if self.is_inside(point):
-      if self.is_leaf(): 
-        if len(self.points) < self.capacity: 
-          self.points.append(point)
+  def add_punto(self, punto):
+    if self.esta_dentro(punto):
+      if self.es_hoja(): 
+        if len(self.puntos) < self.capacidad: 
+          self.puntos.append(punto)
         
         else:
           self.split()
-          for p in self.points:
-            self.northWest.add_point(p)
-            self.northEast.add_point(p)
-            self.southWest.add_point(p)
-            self.southEast.add_point(p)
+          for p in self.puntos:
+            self.noroeste.add_punto(p)
+            self.noreste.add_punto(p)
+            self.suroeste.add_punto(p)
+            self.sureste.add_punto(p)
 
-          self.northWest.add_point(point)
-          self.northEast.add_point(point)
-          self.southWest.add_point(point)
-          self.southEast.add_point(point)
-          self.points = []
+          self.noroeste.add_punto(punto)
+          self.noreste.add_punto(punto)
+          self.suroeste.add_punto(punto)
+          self.sureste.add_punto(punto)
+          self.puntos = []
 
       else:
-        self.northWest.add_point(point)
-        self.northEast.add_point(point)
-        self.southWest.add_point(point)
-        self.southEast.add_point(point)
+        self.noroeste.add_punto(punto)
+        self.noreste.add_punto(punto)
+        self.suroeste.add_punto(punto)
+        self.sureste.add_punto(punto)
 
-  def get_points_in_rect(self, bottomLeft, topRight):
-    if not self.is_overlapping(bottomLeft, topRight):
+  def get_punto_rectan(self, abajo_izquierda, arriba_derecha):
+    if not self.sobrepuesto(abajo_izquierda, arriba_derecha):
       return []
     result = []
-    if self.is_leaf():
-      for p in self.points:
-        if is_point_in_rect(p, bottomLeft, topRight):
+    if self.es_hoja():
+      for p in self.puntos:
+        if punto_rectangulo(p, abajo_izquierda, arriba_derecha):
           result.append(p)
     
     else:
-      result.extend(self.northWest.get_points_in_rect(bottomLeft, topRight))
-      result.extend(self.northEast.get_points_in_rect(bottomLeft, topRight))
-      result.extend(self.southWest.get_points_in_rect(bottomLeft, topRight))
-      result.extend(self.southEast.get_points_in_rect(bottomLeft, topRight))
+      result.extend(self.noroeste.get_punto_rectan(abajo_izquierda, arriba_derecha))
+      result.extend(self.noreste.get_punto_rectan(abajo_izquierda, arriba_derecha))
+      result.extend(self.suroeste.get_punto_rectan(abajo_izquierda, arriba_derecha))
+      result.extend(self.sureste.get_punto_rectan(abajo_izquierda, arriba_derecha))
     return result
 
-  def is_overlapping(self, bottomLeft, topRight):
-    if self.bottomLeft.x > topRight.x or bottomLeft.x > self.topRight.x:
+  def sobrepuesto(self, abajo_izquierda, arriba_derecha):
+    if self.abajo_izquierda.x > arriba_derecha.x or abajo_izquierda.x > self.arriba_derecha.x:
       return False
-    if self.bottomLeft.y > topRight.y or bottomLeft.y > self.topRight.y:
+    if self.abajo_izquierda.y > arriba_derecha.y or abajo_izquierda.y > self.arriba_derecha.y:
       return False
     return True
 
   def split(self):
-    x_low = self.bottomLeft.x
-    y_low = self.bottomLeft.y
-    x_high = self.topRight.x
-    y_high = self.topRight.y
-    x_mid = self.bottomLeft.x + (self.topRight.x - self.bottomLeft.x) / 2
-    y_mid = self.bottomLeft.y + (self.topRight.y - self.bottomLeft.y) / 2
-    self.northWest = QuadTree(capacity=self.capacity, bottomLeft=Point(x_low, y_mid), topRight=Point(x_mid, y_high))
-    self.northEast = QuadTree(capacity=self.capacity, bottomLeft=Point(x_mid, y_mid), topRight=Point(x_high, y_high))
-    self.southWest = QuadTree(capacity=self.capacity, bottomLeft=Point(x_low, y_low), topRight=Point(x_mid, y_mid))
-    self.southEast = QuadTree(capacity=self.capacity, bottomLeft=Point(x_mid, y_low), topRight=Point(x_high, y_mid))
+    x_low = self.abajo_izquierda.x
+    y_low = self.abajo_izquierda.y
+    x_high = self.arriba_derecha.x
+    y_high = self.arriba_derecha.y
+    x_mid = self.abajo_izquierda.x + (self.arriba_derecha.x - self.abajo_izquierda.x) / 2
+    y_mid = self.abajo_izquierda.y + (self.arriba_derecha.y - self.abajo_izquierda.y) / 2
+    self.noroeste = QuadTree(capacidad=self.capacidad, abajo_izquierda=Punto(x_low, y_mid), arriba_derecha=Punto(x_mid, y_high))
+    self.noreste = QuadTree(capacidad=self.capacidad, abajo_izquierda=Punto(x_mid, y_mid), arriba_derecha=Punto(x_high, y_high))
+    self.suroeste = QuadTree(capacidad=self.capacidad, abajo_izquierda=Punto(x_low, y_low), arriba_derecha=Punto(x_mid, y_mid))
+    self.sureste = QuadTree(capacidad=self.capacidad, abajo_izquierda=Punto(x_mid, y_low), arriba_derecha=Punto(x_high, y_mid))
 
-  def is_leaf(self):
-    return self.northWest is None and \
-           self.northEast is None and \
-           self.southWest is None and \
-           self.southEast is None 
+  def es_hoja(self):
+    return self.noroeste is None and \
+           self.noreste is None and \
+           self.suroeste is None and \
+           self.sureste is None 
   
-  def is_inside(self, point):
-    return point.x > self.bottomLeft.x and \
-           point.y > self.bottomLeft.y and \
-           point.x < self.topRight.x and \
-           point.y < self.topRight.y
+  def esta_dentro(self, punto):
+    return punto.x > self.abajo_izquierda.x and \
+           punto.y > self.abajo_izquierda.y and \
+           punto.x < self.arriba_derecha.x and \
+           punto.y < self.arriba_derecha.y
 
 from matplotlib import pyplot as plt
 import random
@@ -107,40 +101,40 @@ import time
 import pandas as pd 
 def draw_quadtree(ax, qt):
   nodes = [qt]
-  x1 = qt.bottomLeft.x
-  x2 = qt.topRight.x
-  y1 = qt.bottomLeft.y
-  y2 = qt.topRight.y
+  x1 = qt.abajo_izquierda.x
+  x2 = qt.arriba_derecha.x
+  y1 = qt.abajo_izquierda.y
+  y2 = qt.arriba_derecha.y
   ax.plot([x1, x2], [y1, y1], '-k')
   ax.plot([x1, x2], [y2, y2], '-k')
   ax.plot([x1, x1], [y1, y2], '-k')
   ax.plot([x2, x2], [y1, y2], '-k')
   while nodes: 
     node = nodes.pop()
-    if node.is_leaf():
+    if node.es_hoja():
       continue
-    x1 = node.bottomLeft.x
-    x2 = node.topRight.x
-    y1 = node.bottomLeft.y
-    y2 = node.topRight.y
+    x1 = node.abajo_izquierda.x
+    x2 = node.arriba_derecha.x
+    y1 = node.abajo_izquierda.y
+    y2 = node.arriba_derecha.y
     ax.plot([(x1+x2) / 2, (x1+x2) / 2], [y1, y2], '-k')
     ax.plot([x1, x2], [(y1+y2) / 2, (y1+y2) / 2], '-k')
-    nodes.append(node.northWest)
-    nodes.append(node.northEast)
-    nodes.append(node.southWest)
-    nodes.append(node.southEast)
+    nodes.append(node.noroeste)
+    nodes.append(node.noreste)
+    nodes.append(node.suroeste)
+    nodes.append(node.sureste)
 
 
-points=[]
-qt = QuadTree(10000)
+puntos=[]
+qt = QuadTree(2)
 df = pd.read_csv("points.tsv", sep='\t' ,header=None)
-points = [Point(float(df.iloc[x,0]), float(df.iloc[x,1])) for x in range(1000000)]
+puntos = [Punto(float(df.iloc[x,0]), float(df.iloc[x,1])) for x in range(100)]
 fig, ax = plt.subplots()  #create figure and axes
-ax.plot([p.x for p in points], [p.y for p in points], 'r.', label="Points") # Plot points
+ax.plot([p.x for p in puntos], [p.y for p in puntos], 'r.', label="Puntos") # Plot puntos
 print("Termino de agrregar al arreglo")
-# Add points to quadtree
-for p in points:
-    qt.add_point(p)
+# Add puntos to quadtree
+for p in puntos:
+    qt.add_punto(p)
 
 # Plot the quadtree
 draw_quadtree(ax, qt)
